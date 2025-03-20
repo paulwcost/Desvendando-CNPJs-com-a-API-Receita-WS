@@ -1,36 +1,69 @@
-document.getElementById('consultarBtn').addEventListener('click', function() {
-    const cnpj = document.getElementById('cnpjInput').value.trim();
-    const resultadoDiv = document.getElementById('resultado');
+document.getElementById("consultarBtn").addEventListener("click", async function () {
+    const cnpjInput = document.getElementById("cnpjInput").value.trim();
+    const resultadoDiv = document.getElementById("resultado");
 
-    if (!cnpj || !/^\d{14}$/.test(cnpj)) {
-        resultadoDiv.innerHTML = '<p>Por favor, digite um CNPJ válido (somente números).</p>';
+    function validarCNPJ(cnpj) {
+        return /^[0-9]{14}$/.test(cnpj);
+    }
+
+    resultadoDiv.innerHTML = "";
+
+    if (!validarCNPJ(cnpjInput)) {
+        resultadoDiv.innerHTML = `<p class="erro">CNPJ inválido! Digite 14 números sem pontos ou traços.</p>`;
         return;
     }
 
-    // Usando o proxy AllOrigins para evitar bloqueio CORS
-    const url = `https://api.allorigins.win/get?url=https://receitaws.com.br/v1/cnpj/${cnpj}`;
+    resultadoDiv.innerHTML = `<p class="carregando">Consultando...</p>`;
 
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Erro ao consultar CNPJ.');
-            }
-            return response.json();
-        })
-        .then(data => {
-            const parsedData = JSON.parse(data.contents); // Decodifica a resposta JSON dentro do AllOrigins
+   
+    const url = `https://cors-anywhere.herokuapp.com/https://receitaws.com.br/v1/cnpj/${cnpjInput}`;
 
-            if (parsedData.status === 'OK') {
-                resultadoDiv.innerHTML = `
-                    <p><strong>Nome:</strong> ${parsedData.nome}</p>
-                    <p><strong>Situação:</strong> ${parsedData.situacao}</p>
-                    <p><strong>Atividade Principal:</strong> ${parsedData.atividade_principal[0].text}</p>
-                `;
-            } else {
-                resultadoDiv.innerHTML = `<p>${parsedData.mensagem || 'CNPJ não encontrado.'}</p>`;
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw response;
+        }
+
+        const data = await response.json();
+
+        if (data.status === "ERROR") {
+            resultadoDiv.innerHTML = `<p class="erro">Erro: ${data.message}</p>`;
+            return;
+        }
+
+        resultadoDiv.innerHTML = `
+            <p><strong>Nome:</strong> ${data.nome}</p>
+            <p><strong>Fantasia:</strong> ${data.fantasia}</p>
+            <p><strong>Situação:</strong> ${data.situacao}</p>
+            <p><strong>Abertura:</strong> ${data.abertura}</p>
+            <p><strong>UF:</strong> ${data.uf}</p>
+        `;
+
+    } catch (error) {
+        if (error.status) {
+            switch (error.status) {
+                case 400:
+                    resultadoDiv.innerHTML = `<p class="erro">CNPJ inválido! Verifique e tente novamente.</p>`;
+                    break;
+                case 404:
+                    resultadoDiv.innerHTML = `<p class="erro">CNPJ não encontrado na base de dados.</p>`;
+                    break;
+                case 429:
+                    resultadoDiv.innerHTML = `<p class="erro">Muitas requisições! Aguarde um momento antes de tentar novamente.</p>`;
+                    break;
+                case 500:
+                case 504:
+                    resultadoDiv.innerHTML = `<p class="erro">Erro no servidor da API. Tentando novamente...</p>`;
+                    setTimeout(() => document.getElementById("consultarBtn").click(), 5000);
+                    break;
+                default:
+                    resultadoDiv.innerHTML = `<p class="erro">Erro inesperado! Tente novamente mais tarde.</p>`;
             }
-        })
-        .catch(error => {
-            resultadoDiv.innerHTML = `<p>Erro: ${error.message}</p>`;
-        });
+        } else {
+            resultadoDiv.innerHTML = `<p class="erro">Erro ao conectar com a API. Verifique sua conexão.</p>`;
+        }
+    }
 });
+
+

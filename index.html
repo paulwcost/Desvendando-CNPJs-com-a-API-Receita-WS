@@ -12,7 +12,44 @@
         <input type="text" id="cnpjInput" placeholder="Digite o CNPJ (sem pontos ou traços)">
         <button id="consultarBtn">Consultar</button>
         <div id="resultado"></div>
+        
+        <h2>Cronômetro</h2>
+        <div id="timer">60</div>
     </div>
+    
     <script src="script.js"></script>
+    <script>
+        document.getElementById("consultarBtn").addEventListener("click", function() {
+            consultarCNPJ();
+        });
+
+        function consultarCNPJ() {
+            const resultado = document.getElementById("resultado");
+            const mensagemErro = "Muitas requisições! Aguarde um momento antes de tentar novamente.";
+            
+            setTimeout(() => {
+                const erro = Math.random() < 0.5; // Simula um erro em 50% das requisições
+                if (erro) {
+                    resultado.textContent = mensagemErro;
+                    startTimer();
+                } 
+            }, 500);
+        }
+
+        function startTimer() {
+            let timeLeft = 60;
+            const timerDisplay = document.getElementById("timer");
+            
+            const countdown = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    timerDisplay.textContent = "Tente novamente";
+                }
+            }, 1000);
+        }
+    </script>
 </body>
 </html>
